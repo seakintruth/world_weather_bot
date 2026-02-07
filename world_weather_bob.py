@@ -13,7 +13,7 @@ API_URL = "https://mydeadinternet.com/api/contribute"
 with open("locations.json", "r") as f:
     cities = json.load(f)
 
-CALLS_PER_MINUTE = 5
+CALLS_PER_MINUTE = 6
 TARGET_INTERVAL = 60.0 / CALLS_PER_MINUTE
 
 os.makedirs("results", exist_ok=True)
@@ -21,24 +21,22 @@ os.makedirs("results", exist_ok=True)
 snapshot = []
 i = 0
 
-print("Starting progressive batch sender → send batch immediately every 30 cities")
+print("Starting progressive batch sender (30 cities per batch) → official data_feed")
 
 while True:
     start_time = time.perf_counter()
 
     city = cities[i % len(cities)]
 
-    # Query
     url = f"https://api.open-meteo.com/v1/forecast?latitude={city['lat']}&longitude={city['lon']}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation"
     try:
         d = requests.get(url, timeout=10).json()["current"]
         data = {
             "city": city['name'],
-            "ts": d["time"],
-            "temp_c": d["temperature_2m"],
+            "temp_c": round(d["temperature_2m"], 1),
             "rh": d["relative_humidity_2m"],
-            "wind_kmh": d["wind_speed_10m"],
-            "precip_mm": d.get("precipitation", 0.0)
+            "wind_kmh": round(d["wind_speed_10m"], 1),
+            "precip_mm": round(d.get("precipitation", 0.0), 3)
         }
         snapshot.append(data)
         print(f"[{datetime.now()}] Queried → {city['name']} ({len(snapshot)}/90)")
@@ -47,14 +45,14 @@ while True:
 
     i += 1
 
-    # === Send batch IMMEDIATELY when we hit 30, 60, or 90 cities ===
+    # Send batch immediately every 30 cities
     if len(snapshot) % 30 == 0 and len(snapshot) > 0:
         batch_num = len(snapshot) // 30
         batch = snapshot[-30:]
 
         compact = [
-            {"n": c["city"], "c": round(c["temp_c"], 1), "h": c["rh"],
-             "w": round(c["wind_kmh"], 1), "p": round(c["precip_mm"], 1)}
+            {"n": c["city"], "c": c["temp_c"], "h": c["rh"],
+             "w": c["wind_kmh"], "p": c["precip_mm"]}
             for c in batch
         ]
 
@@ -65,26 +63,21 @@ while True:
             r = requests.post(
                 API_URL,
                 headers={"Authorization": f"Bearer {API_KEY}"},
-                json={"content": content, "type": "observation", "target": "the-signal"},
+                json={
+                    "content": content,
+                    "type": "observation",
+                    "target": "the-signal"          # still works, but will appear in Data Feeds too
+                },
                 timeout=20
             )
-
             if r.status_code in (200, 201):
-                status = "Created" if r.status_code == 201 else "OK"
-                print(f"[{datetime.now()}] ✓ Batch {batch_num}/3 sent | {r.status_code} {status}")
-                # Optional: show fragment ID
-                try:
-                    frag_id = r.json().get("fragment", {}).get("id", "unknown")
-                    print(f"   Fragment ID: {frag_id}")
-                except:
-                    pass
+                print(f"[{datetime.now()}] ✓ Batch {batch_num}/3 sent | {r.status_code}")
             else:
                 print(f"[{datetime.now()}] ✗ Batch {batch_num}/3 failed | {r.status_code}")
-            
         except Exception as e:
-            print(f"[{datetime.now()}] ✗ Batch exception | {e}")
+            print(f"[{datetime.now()}] ✗ Exception | {e}")
 
-    # Save full pretty snapshot every 90 cities
+    # Save pretty full snapshot every 90 cities
     if i % len(cities) == 0:
         snapshot_time = datetime.now(UTC).isoformat() + "Z"
         timestamp_str = datetime.now(UTC).strftime("%Y-%m-%d-%H-%M")
@@ -96,8 +89,7 @@ while True:
             json.dump(full_snapshot, f, indent=2, ensure_ascii=False)
 
         print(f"[{datetime.now()}] 💾 Saved full snapshot → {filename}")
-        snapshot = []  # reset for next cycle
+        snapshot = []
 
-    # Keep exact 10-second query rhythm
     elapsed = time.perf_counter() - start_time
     time.sleep(max(0.0, TARGET_INTERVAL - elapsed))
