@@ -1,15 +1,15 @@
 #!/bin/bash
 # process.sh - Global Weather Pulse Bot
-# Fully automatic: creates venv, joins collective, installs deps, logs to ./log/results.txt
+# Fully automatic: creates venv, joins collective, installs deps, logs to ./log/logs.txt
 # Example usage (send to background): 
-# nohup ./run.sh > /dev/null 2>&1 & echo "Bot started. Logs → ./log/results.txt"
+# nohup ./run.sh > /dev/null 2>&1 & echo "Bot started. Logs → ./log/logs.txt"
 
 
 cd "$(dirname "$0")"
 
 # Create log directory
 mkdir -p ./log
-LOGFILE="./log/results.txt"
+LOGFILE="./log/logs.txt"
 
 echo "=== Global Weather Pulse Bot Startup ===" | tee -a "$LOGFILE"
 echo "Start time: $(date)" | tee -a "$LOGFILE"
