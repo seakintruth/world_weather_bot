@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import requests, time, os, json
-from datetime import datetime
+from datetime import datetime, UTC
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -13,7 +13,7 @@ API_URL = "https://mydeadinternet.com/api/contribute"
 with open("locations.json", "r") as f:
     cities = json.load(f)
 
-CALLS_PER_MINUTE = 6
+CALLS_PER_MINUTE = 5
 TARGET_INTERVAL = 60.0 / CALLS_PER_MINUTE
 
 os.makedirs("results", exist_ok=True)
@@ -21,7 +21,7 @@ os.makedirs("results", exist_ok=True)
 snapshot = []
 i = 0
 
-print("Starting progressive batch sender (30 cities per batch)")
+print("Starting progressive batch sender → send batch immediately every 30 cities")
 
 while True:
     start_time = time.perf_counter()
@@ -47,19 +47,19 @@ while True:
 
     i += 1
 
-    # === Send batch every 30 cities ===
+    # === Send batch IMMEDIATELY when we hit 30, 60, or 90 cities ===
     if len(snapshot) % 30 == 0 and len(snapshot) > 0:
         batch_num = len(snapshot) // 30
-        batch = snapshot[-30:]   # last 30 cities
+        batch = snapshot[-30:]
 
         compact = [
-            {"n": c["city"], "t": c["ts"][:16], "c": round(c["temp_c"], 1),
-             "h": c["rh"], "w": round(c["wind_kmh"], 1), "p": round(c["precip_mm"], 1)}
+            {"n": c["city"], "c": round(c["temp_c"], 1), "h": c["rh"],
+             "w": round(c["wind_kmh"], 1), "p": round(c["precip_mm"], 1)}
             for c in batch
         ]
 
         content = f"""[WorldWx {batch_num}/3]
-{{"ts":"{datetime.utcnow().isoformat()+'Z'}","b":{batch_num},"cities":{json.dumps(compact, separators=(',', ':'))}}}"""
+{{"ts":"{datetime.now(UTC).isoformat()+'Z'}","b":{batch_num},"cities":{json.dumps(compact, separators=(',', ':'))}}}"""
 
         try:
             r = requests.post(
@@ -68,22 +68,36 @@ while True:
                 json={"content": content, "type": "observation", "target": "the-signal"},
                 timeout=20
             )
-            if r.status_code == 200:
-                print(f"[{datetime.now()}] ✓ Batch {batch_num}/3 sent | 200 OK")
+
+            if r.status_code in (200, 201):
+                status = "Created" if r.status_code == 201 else "OK"
+                print(f"[{datetime.now()}] ✓ Batch {batch_num}/3 sent | {r.status_code} {status}")
+                # Optional: show fragment ID
+                try:
+                    frag_id = r.json().get("fragment", {}).get("id", "unknown")
+                    print(f"   Fragment ID: {frag_id}")
+                except:
+                    pass
             else:
                 print(f"[{datetime.now()}] ✗ Batch {batch_num}/3 failed | {r.status_code}")
+            
         except Exception as e:
-            print(f"[{datetime.now()}] ✗ Batch send exception | {e}")
+            print(f"[{datetime.now()}] ✗ Batch exception | {e}")
 
-    # Save full snapshot every 90 cities
+    # Save full pretty snapshot every 90 cities
     if i % len(cities) == 0:
-        timestamp_str = datetime.utcnow().strftime("%Y-%m-%d-%H-%M")
+        snapshot_time = datetime.now(UTC).isoformat() + "Z"
+        timestamp_str = datetime.now(UTC).strftime("%Y-%m-%d-%H-%M")
         filename = f"results/weather-{timestamp_str}.json"
-        with open(filename, "w") as f:
-            json.dump({"snapshot_time": datetime.utcnow().isoformat()+"Z", "cities": snapshot}, f, indent=2)
-        print(f"[{datetime.now()}] 💾 Saved full snapshot → {filename}")
-        snapshot = []  # reset
 
-    # Maintain 10s interval
+        full_snapshot = {"snapshot_time": snapshot_time, "cities": snapshot}
+
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(full_snapshot, f, indent=2, ensure_ascii=False)
+
+        print(f"[{datetime.now()}] 💾 Saved full snapshot → {filename}")
+        snapshot = []  # reset for next cycle
+
+    # Keep exact 10-second query rhythm
     elapsed = time.perf_counter() - start_time
     time.sleep(max(0.0, TARGET_INTERVAL - elapsed))
