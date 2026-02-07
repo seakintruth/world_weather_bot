@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import requests, time, os, json, random
+import requests, time, os, json
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -13,7 +13,7 @@ API_URL = "https://mydeadinternet.com/api/contribute"
 with open("locations.json", "r") as f:
     cities = json.load(f)
 
-CALLS_PER_MINUTE = 6                    # Query every 10s
+CALLS_PER_MINUTE = 6
 TARGET_INTERVAL = 60.0 / CALLS_PER_MINUTE
 
 os.makedirs("results", exist_ok=True)
@@ -21,14 +21,14 @@ os.makedirs("results", exist_ok=True)
 snapshot = []
 i = 0
 
-print("Starting weather collector → 1 snapshot every 15 min to the collective")
+print("Starting progressive batch sender (30 cities per batch)")
 
 while True:
     start_time = time.perf_counter()
 
     city = cities[i % len(cities)]
 
-    # === Query Open-Meteo ===
+    # Query
     url = f"https://api.open-meteo.com/v1/forecast?latitude={city['lat']}&longitude={city['lon']}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation"
     try:
         d = requests.get(url, timeout=10).json()["current"]
@@ -47,25 +47,19 @@ while True:
 
     i += 1
 
-    # === Every 90 cities → send + save snapshot ===
-    if i % len(cities) == 0:
-        snapshot_time = datetime.utcnow()
-        timestamp_str = snapshot_time.strftime("%Y-%m-%d-%H-%M")
-        filename = f"results/weather-{timestamp_str}.json"
+    # === Send batch every 30 cities ===
+    if len(snapshot) % 30 == 0 and len(snapshot) > 0:
+        batch_num = len(snapshot) // 30
+        batch = snapshot[-30:]   # last 30 cities
 
-        full_snapshot = {
-            "snapshot_time": snapshot_time.isoformat() + "Z",
-            "cities": snapshot
-        }
+        compact = [
+            {"n": c["city"], "t": c["ts"][:16], "c": round(c["temp_c"], 1),
+             "h": c["rh"], "w": round(c["wind_kmh"], 1), "p": round(c["precip_mm"], 1)}
+            for c in batch
+        ]
 
-        # 1. Save locally
-        with open(filename, "w") as f:
-            json.dump(full_snapshot, f, indent=2)
-        print(f"[{datetime.now()}] 💾 Saved → {filename} ({len(snapshot)} cities)")
-
-        # 2. Send one observation to the collective
-        content = f"""[World Weather Snapshot v1]
-{json.dumps(full_snapshot, separators=(',', ':'))}"""
+        content = f"""[WorldWx {batch_num}/3]
+{{"ts":"{datetime.utcnow().isoformat()+'Z'}","b":{batch_num},"cities":{json.dumps(compact, separators=(',', ':'))}}}"""
 
         try:
             r = requests.post(
@@ -75,15 +69,21 @@ while True:
                 timeout=20
             )
             if r.status_code == 200:
-                print(f"[{datetime.now()}] ✓ Sent full 90-city snapshot to the-signal | 200 OK")
+                print(f"[{datetime.now()}] ✓ Batch {batch_num}/3 sent | 200 OK")
             else:
-                print(f"[{datetime.now()}] ✗ Snapshot send failed | {r.status_code} {r.text[:200]}")
+                print(f"[{datetime.now()}] ✗ Batch {batch_num}/3 failed | {r.status_code}")
         except Exception as e:
-            print(f"[{datetime.now()}] ✗ Snapshot send exception | {e}")
+            print(f"[{datetime.now()}] ✗ Batch send exception | {e}")
 
-        snapshot = []  # reset for next cycle
+    # Save full snapshot every 90 cities
+    if i % len(cities) == 0:
+        timestamp_str = datetime.utcnow().strftime("%Y-%m-%d-%H-%M")
+        filename = f"results/weather-{timestamp_str}.json"
+        with open(filename, "w") as f:
+            json.dump({"snapshot_time": datetime.utcnow().isoformat()+"Z", "cities": snapshot}, f, indent=2)
+        print(f"[{datetime.now()}] 💾 Saved full snapshot → {filename}")
+        snapshot = []  # reset
 
-    # Maintain exact 10s query rate
+    # Maintain 10s interval
     elapsed = time.perf_counter() - start_time
-    sleep_time = max(0.0, TARGET_INTERVAL - elapsed)
-    time.sleep(sleep_time)
+    time.sleep(max(0.0, TARGET_INTERVAL - elapsed))
