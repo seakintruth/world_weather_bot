@@ -7,6 +7,7 @@ Run with: pytest test_weather_bob.py -v
 import pytest
 import json
 import os
+import math
 from unittest.mock import patch, MagicMock
 from datetime import datetime, UTC
 from pathlib import Path

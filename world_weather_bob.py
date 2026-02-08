@@ -40,7 +40,7 @@ def load_config():
 
 
 def load_cities():
-    with open("locations.json", "r", encoding="utf-8") as f:
+    with open("config/locations.json", "r", encoding="utf-8") as f:
         return json.load(f)
 
 def calculate_batch_sizes(total: int, target_batch: int = 30, max_batch: int = 39) -> list[int]:
@@ -123,12 +123,13 @@ def main():
     cities = load_cities()
     batch_sizes = calculate_batch_sizes(
         len(cities),
-        config["max_batch"],
-        config["target_batch"]
+        config["target_batch"],
+        config["max_batch"]
     )
     print(f"Loaded {len(cities)} cities → batch sizes = {batch_sizes}")
 
     snapshot = []
+    full_data = []
     batch_index = 0
     city_index = 0
 
@@ -140,6 +141,7 @@ def main():
         data = fetch_weather(city)
         if data:
             snapshot.append(data)
+            full_data.append(data)
             print(f"[{datetime.now()}] Queried → {city['name']} ({len(snapshot)}/{batch_sizes[batch_index]})")
 
         city_index += 1
@@ -154,7 +156,8 @@ def main():
                 batch_index = 0
 
         if city_index % len(cities) == 0 and city_index > 0:
-            save_full_snapshot(snapshot)
+            save_full_snapshot(full_data)
+            full_data = []
             snapshot = []
 
         elapsed = time.perf_counter() - start_time

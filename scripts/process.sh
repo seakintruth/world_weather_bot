@@ -3,21 +3,21 @@
 
 cd "$(dirname "$0")"
 
-mkdir -p ./log
-LOGFILE="./log/logs.txt"
+mkdir -p ../log
+LOGFILE="../log/logs.txt"
 
 echo "=== Global Weather Pulse Bot Startup ===" | tee -a "$LOGFILE"
 echo "Start time: $(date)" | tee -a "$LOGFILE"
 
 # 1. Create venv if missing
-if [ ! -d ".venv" ]; then
+if [ ! -d "../.venv" ]; then
     echo "→ Creating venv..." | tee -a "$LOGFILE"
-    python3 -m venv .venv
+    python3 -m venv ../.venv
 fi
 
-source .venv/bin/activate
+source ../.venv/bin/activate
 
-# 2. Create .env as official data_feed if missing
+# 2. Create .env and official data_feed if missing
 if [ -f .env ] && grep -q "API_KEY=" .env; then
     echo "✓ .env already exists" | tee -a "$LOGFILE"
 else
@@ -53,7 +53,7 @@ except:
 fi
 
 # 3. Install deps
-pip install --quiet -r requirements.txt --break-system-packages
+pip install --quiet -r ../config/requirements.txt --break-system-packages
 
 # 4. Start bot
 echo "→ Starting bot..." | tee -a "$LOGFILE"
@@ -61,7 +61,7 @@ echo "=========================================" | tee -a "$LOGFILE"
 
 while true; do
     echo "[$(date)] Bot started" | tee -a "$LOGFILE"
-    python3 world_weather_bob.py 2>&1 | tee -a "$LOGFILE"
+    python3 ../world_weather_bob.py 2>&1 | tee -a "$LOGFILE"
     echo "[$(date)] Bot exited — restarting in 5s..." | tee -a "$LOGFILE"
     sleep 5
 done

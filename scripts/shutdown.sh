@@ -2,7 +2,7 @@
 # shutdown.sh - Fully stop the weather bot (compatible with all pkill versions)
 
 cd "$(dirname "$0")"
-LOGFILE="./log/logs.txt"
+LOGFILE="../log/logs.txt"
 
 echo "=== Shutting down Global Weather Pulse Bot ===" | tee -a "$LOGFILE"
 echo "Time: $(date)" | tee -a "$LOGFILE"

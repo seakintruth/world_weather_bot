@@ -1,23 +1,75 @@
-.env
-.venv
-log/
-results/
+# ============================
+# Python
+# ============================
 __pycache__/
+*.py[cod]
 *.pyc
-.DS_Store
-.idea/
-.vscode/
-*.log
-coverage/
-htmlcov/
-.ipynb_checkpoints/
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+env.bak/
+venv.bak/
+
+# ============================
+# Virtual Environment & Packages
+# ============================
+pip-log.txt
+pip-delete-this-directory.txt
 *.egg-info/
-dist/
-build/
+*.egg
 .eggs/
-.pytest_cache/
-.mypy_cache/
+build/
+dist/
+
+# ============================
+# Project Output & Data
+# ============================
+results/
+log/
+*.log
+*.html
+compilation.txt
+
+# ============================
+# Secrets & Environment
+# ============================
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ============================
+# OS & Editor Junk
+# ============================
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+
+# ============================
+# IDEs
+# ============================
+.vscode/
+.idea/
 .pyre/
 .pytype/
 .pyright/
-.cache/ 
+
+# ============================
+# Testing & Coverage
+# ============================
+.coverage
+coverage.xml
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.cache/
