@@ -44,6 +44,6 @@ title_html = '''
 m.get_root().html.add_child(folium.Element(title_html))
 
 # Save
-m.save("world_cities_map.html")
+m.save("results/world_cities_map.html")
 print("✅ Interactive map saved → world_cities_map.html")
 print("   Open the file in your browser to explore")
