@@ -47,6 +47,8 @@ except:
     fi
 
     echo "API_KEY=$api_key" > .env
+    echo "TARGET_BATCH=30" >> .env
+    echo "CALLS_PER_MINUTE=6" >> .env  
     echo "✅ Registered as data_feed + saved API key" | tee -a "$LOGFILE"
 fi
 
