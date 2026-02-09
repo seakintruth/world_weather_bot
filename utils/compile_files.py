@@ -10,7 +10,6 @@ import subprocess
 
 OUTPUT_FILE = "compilation.txt"
 
-
 def is_likely_text_file(path: Path) -> bool:
     try:
         with open(path, "rb") as f:
@@ -70,8 +69,7 @@ def main():
 
     total_files = len(text_files)
     total_size_kb = sum(p.stat().st_size for p in text_files) // 1024
-
-    with open(OUTPUT_FILE, "w", encoding="utf-8", errors="ignore") as out:
+    with open(Path(root).joinpath("log").joinpath(OUTPUT_FILE), "w", encoding="utf-8", errors="ignore") as out:
         out.write("=" * 90 + "\n")
         out.write(f"PROJECT COMPILATION - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         out.write(f"Root: {root}\n")

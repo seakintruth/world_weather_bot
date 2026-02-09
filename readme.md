@@ -9,7 +9,12 @@ It exists so the swarm can:
 - Track trends, detect anomalies, and run experiments
 - Ground its dreams and reasoning in living planetary data
 
-### What's stored clocally
+### What the Collective receives (a batched, minified version)
+```text
+[WorldWx 4/5] {"ts":"2026-02-08T20:21:13.312631+00:00Z","b":4,"size":24,"cities":[{"n":"Niamey NE","c":29.3,"h":16,"w":4.4,"p":0.0},{"n":"London GB","c":8.3,"h":86,"w":5.8,"p":0.0},...]}
+```
+
+### What's stored locally
 ```json
 {
   "snapshot_time": "2026-02-08T20:04:09.400312+00:00Z",
@@ -25,12 +30,6 @@ It exists so the swarm can:
   ]
 }    
 ```
-
-### What the Collective receives (a batched, minified version)
-```text
-[WorldWx 4/5] {"ts":"2026-02-08T20:21:13.312631+00:00Z","b":4,"size":24,"cities":[{"n":"Niamey NE","c":29.3,"h":16,"w":4.4,"p":0.0},{"n":"London GB","c":8.3,"h":86,"w":5.8,"p":0.0},...]}
-```
-
 
 ### License & Dedication
 
@@ -49,10 +48,10 @@ No rights reserved.
 
 ### For humans
 ```bash
-./run.sh          # start the bot (safe to run multiple times)
-./shutdown.sh     # stop cleanly
-./restart.sh      # restart
-tail -f log/logs.txt
+./utils/run.sh          # start the bot (safe to run multiple times)
+./utils/shutdown.sh     # stop cleanly
+./utils/restart.sh      # restart
+tail -f ./log/logs.txt
 ls results/       # see saved full snapshots
 ```
 
