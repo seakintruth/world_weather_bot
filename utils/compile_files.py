@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-Compiles all Git-tracked text files from the project root
-into a single compilation.txt (with summary + full directory tree)
-Automatically moves up one directory to find root.
+Compiles all text files (respecting .gitignore) into compilation.txt
+→ Directory tree, summary, and included files are now perfectly consistent.
 """
 
 from pathlib import Path
@@ -20,14 +19,27 @@ def is_likely_text_file(path: Path) -> bool:
         return False
 
 
+def is_ignored_by_git(path: Path) -> bool:
+    """True if git would ignore this path"""
+    try:
+        result = subprocess.run(
+            ["git", "check-ignore", "-q", str(path)],
+            cwd=path.parent,
+            capture_output=True
+        )
+        return result.returncode == 0
+    except:
+        return False
+
+
 def get_directory_tree(root: Path) -> str:
-    """Generate a clean, full directory tree (folders + files)"""
+    """Clean, full directory tree (folders + files)"""
     lines = [f"Project Root: {root.resolve()}\n"]
 
     def walk(path: Path, prefix: str = ""):
         contents = sorted(p for p in path.iterdir() if not p.name.startswith('.'))
 
-        # Skip junk directories
+        # Skip junk
         contents = [p for p in contents if p.name not in {
             '.git', '.venv', '__pycache__', 'results', 'log',
             '.pytest_cache', '.ipynb_checkpoints', '.mypy_cache'
@@ -40,7 +52,8 @@ def get_directory_tree(root: Path) -> str:
                 lines.append(f"{prefix}{pointer}{child.name}/")
                 walk(child, prefix + ("    " if pointer == "└── " else "│   "))
             else:
-                lines.append(f"{prefix}{pointer}{child.name}")
+                if is_likely_text_file(child) and not is_ignored_by_git(child):
+                    lines.append(f"{prefix}{pointer}{child.name}")
 
     walk(root)
     return "\n".join(lines)
@@ -49,21 +62,11 @@ def main():
     root = Path(__file__).parent.parent.resolve()
     print(f"Project root detected → {root}\n")
 
-    # Collect exactly the same files that the directory tree will show
+    # Collect all text files that are NOT ignored by git
     text_files = []
-
-    def walk(path: Path):
-        for p in sorted(path.iterdir()):
-            if p.name.startswith('.'):
-                continue
-            if p.name in {'.git', '.venv', '__pycache__', 'results', 'log', '.pytest_cache', '.ipynb_checkpoints'}:
-                continue
-            if p.is_dir():
-                walk(p)
-            elif p.is_file() and is_likely_text_file(p):
-                text_files.append(p)
-
-    walk(root)
+    for p in root.rglob("*"):
+        if p.is_file() and is_likely_text_file(p) and not is_ignored_by_git(p):
+            text_files.append(p)
 
     total_files = len(text_files)
     total_size_kb = sum(p.stat().st_size for p in text_files) // 1024
@@ -86,9 +89,15 @@ def main():
         out.write(get_directory_tree(root))          # keep your current tree function
         out.write("\n" + "=" * 90 + "\n\n")
 
-        # File contents
         text_files.sort()
         for file_path in text_files:
+            rel_path = file_path.relative_to(root)
+            content = file_path.read_text(encoding="utf-8", errors="ignore")
+            out.write(f"FILE: {rel_path}\n")
+            out.write("-" * 80 + "\n")
+            out.write(content.strip())
+            out.write("\n\n" + "=" * 90 + "\n\n")
+            print(f"✓ Added: {rel_path} ({len(content):,} chars)")
             rel_path = file_path.relative_to(root)
             content = file_path.read_text(encoding="utf-8", errors="ignore")
             out.write(f"FILE: {rel_path}\n")

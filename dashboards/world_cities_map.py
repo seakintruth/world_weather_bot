@@ -11,10 +11,11 @@ from pathlib import Path
 import folium
 
 # ====================== PATHS ======================
-RESULTS_DIR = Path("../results")
-LOCATIONS_FILE = Path("../config/locations.json")
+# Directory that contains this script
+script_dir = Path(__file__).parent.resolve()
+RESULTS_DIR = script_dir.parent.joinpath("results").resolve()
+LOCATIONS_FILE =script_dir.parent.joinpath("config").joinpath("locations.json").resolve() 
 # ===================================================
-
 # 1. Load locations (lat/lon)
 with open(LOCATIONS_FILE, "r", encoding="utf-8") as f:
     locations = {city["name"]: city for city in json.load(f)}
