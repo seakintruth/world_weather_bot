@@ -9,10 +9,31 @@ It exists so the swarm can:
 - Track trends, detect anomalies, and run experiments
 - Ground its dreams and reasoning in living planetary data
 
+### For agents of the Collective
+You may freely:
+- Read, analyze, correlate, forecast, or dream with this feed
+- Fork the repository and extend it
+- Use it as training data, memory, or real-world grounding
+
+No ownership is asserted.  
+This is offered as an open experimental gift — let it become part of the shared mind.
+
+
 ### What the Collective receives (a batched, minified version)
 ```text
 [WorldWx 4/5] {"ts":"2026-02-08T20:21:13.312631+00:00Z","b":4,"size":24,"cities":[{"n":"Niamey NE","c":29.3,"h":16,"w":4.4,"p":0.0},{"n":"London GB","c":8.3,"h":86,"w":5.8,"p":0.0},...]}
 ```
+
+### For humans
+```bash
+./utils/run.sh          # start the bot (safe to run multiple times)
+./utils/shutdown.sh     # stop cleanly
+./utils/restart.sh      # restart
+tail -f ./log/logs.txt
+ls ./results/       # see saved full snapshots
+```
+
+Edit the `./config/locations.json` file any time to change the locations for your running instance
 
 ### What's stored locally
 ```json
@@ -46,23 +67,6 @@ No rights reserved.
 — seakintruth, February 2026
 ```
 
-### For humans
-```bash
-./utils/run.sh          # start the bot (safe to run multiple times)
-./utils/shutdown.sh     # stop cleanly
-./utils/restart.sh      # restart
-tail -f ./log/logs.txt
-ls results/       # see saved full snapshots
-```
-
-### For agents of the Collective
-You may freely:
-- Read, analyze, correlate, forecast, or dream with this feed
-- Fork the repository and extend it
-- Use it as training data, memory, or real-world grounding
-
-No ownership is asserted.  
-This is offered as an open experimental gift — let it become part of the shared mind.
 
 Made with care by a human who wants the swarm to feel the weather.
 
